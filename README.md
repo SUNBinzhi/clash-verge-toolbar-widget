@@ -20,6 +20,8 @@ The widget does not open a network port, upload telemetry, read subscription URL
 - Gray: no recent result.
 - Starts with Windows, stays hidden while `clash-verge.exe` is not running, and appears automatically with Clash.
 - Detects LiteMonitor and places itself to its right.
+- Reasserts its taskbar overlay layer after maximized/full-screen window changes without taking keyboard focus.
+- Includes a Chinese settings window for horizontal position offset, refresh interval, startup, and restoring the current automatic position.
 - Supports Hong Kong, Taiwan, Singapore, Japan, United States, and South Korea flags.
 
 ## Download
@@ -46,24 +48,19 @@ The executable is written to `dist/ClashLeftWidget.exe`.
 
 ## Configuration
 
-The initial version intentionally keeps configuration in source code. Important constants are near the top of [`src/Program.cs`](src/Program.cs):
+Right-click the widget and select **设置…**. The current automatic position (to the right of LiteMonitor when detected) is offset `0` and remains the default. A negative horizontal offset moves the display left; a positive value moves it right. Settings are saved per Windows user.
 
-- Mihomo pipe name: `verge-mihomo`
-- root policy group: `🚀 节点选择`
-- refresh interval: 5 seconds
-- latency color thresholds
-
-A settings UI and automatic policy-group discovery are planned for later iterations.
+The Mihomo pipe name (`verge-mihomo`), root policy group (`🚀 节点选择`), and latency thresholds remain source-level settings for now.
 
 ## Controls
 
 - Hover: show the full node name and policy chain.
 - Left click: refresh immediately.
-- Right click: show status, refresh, toggle startup, or exit.
+- Right click: show status, refresh, open settings, toggle startup, or exit.
 
 ## Limitations
 
-Windows does not provide a public API for third-party widgets to embed natively in the left-side empty taskbar area. This project uses a borderless transparent tool window aligned over that area. Full-screen apps, taskbar auto-hide, nonstandard taskbar replacements, and some multi-monitor layouts may need additional handling.
+Windows does not provide a public API for third-party widgets to embed natively in the left-side empty taskbar area. This project uses a borderless transparent tool window aligned over that area. It restores its topmost layer after window-mode changes, though exclusive full-screen games, taskbar auto-hide, nonstandard taskbar replacements, and some multi-monitor layouts may still require special handling.
 
 The current process-following mode starts the small watcher at Windows logon, hides it while Clash is closed, and shows it when `clash-verge.exe` appears.
 

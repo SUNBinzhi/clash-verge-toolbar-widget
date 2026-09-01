@@ -37,6 +37,7 @@ namespace ClashLeftWidget
         private const string RootGroup = "🚀 节点选择";
         private const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
         private const string RunValue = "ClashLeftWidget";
+        private const string SettingsKey = @"Software\ClashLeftWidget";
         private readonly System.Windows.Forms.Timer refreshTimer = new System.Windows.Forms.Timer();
         private readonly System.Windows.Forms.Timer positionTimer = new System.Windows.Forms.Timer();
         private readonly ContextMenuStrip menu = new ContextMenuStrip();
@@ -47,6 +48,8 @@ namespace ClashLeftWidget
         private string detail = "Clash 未运行";
         private Color statusColor = Color.FromArgb(125, 132, 145);
         private bool polling;
+        private int horizontalOffset;
+        private int refreshSeconds;
 
         public WidgetForm()
         {
@@ -61,10 +64,14 @@ namespace ClashLeftWidget
             Opacity = 1.0;
             Cursor = Cursors.Hand;
             Text = "Clash 节点状态";
+            horizontalOffset = ReadSetting("HorizontalOffset", 0, -1000, 1000);
+            refreshSeconds = ReadSetting("RefreshSeconds", 5, 2, 60);
 
             var status = new ToolStripMenuItem("正在读取状态…") { Enabled = false, Name = "status" };
             var refresh = new ToolStripMenuItem("立即刷新");
             refresh.Click += async delegate { await PollAsync(); };
+            var settings = new ToolStripMenuItem("设置…");
+            settings.Click += delegate { ShowSettings(); };
             var startup = new ToolStripMenuItem("开机自启") { Checked = IsStartupEnabled(), CheckOnClick = true };
             startup.CheckedChanged += delegate { SetStartup(startup.Checked); };
             var exit = new ToolStripMenuItem("退出");
@@ -72,6 +79,7 @@ namespace ClashLeftWidget
             menu.Items.Add(status);
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add(refresh);
+            menu.Items.Add(settings);
             menu.Items.Add(startup);
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add(exit);
@@ -83,7 +91,7 @@ namespace ClashLeftWidget
             };
 
             Shown += delegate { SyncWithClash(); };
-            refreshTimer.Interval = 5000;
+            refreshTimer.Interval = refreshSeconds * 1000;
             refreshTimer.Tick += async delegate { if (IsClashRunning()) await PollAsync(); };
             refreshTimer.Start();
             positionTimer.Interval = 1000;
@@ -97,6 +105,7 @@ namespace ClashLeftWidget
             {
                 if (!Visible) Show();
                 PlaceOnTaskbar();
+                KeepAboveWindows();
                 if (shortNode == "Clash 离线" || shortNode == "离线")
                 {
                     Task ignored = PollAsync();
@@ -121,11 +130,14 @@ namespace ClashLeftWidget
             get
             {
                 const int WS_EX_TOOLWINDOW = 0x80;
+                const int WS_EX_NOACTIVATE = 0x08000000;
                 var cp = base.CreateParams;
-                cp.ExStyle |= WS_EX_TOOLWINDOW;
+                cp.ExStyle |= WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE;
                 return cp;
             }
         }
+
+        protected override bool ShowWithoutActivation { get { return true; } }
 
         protected override void OnPaint(PaintEventArgs e)
         {
@@ -190,7 +202,8 @@ namespace ClashLeftWidget
                 int liteRight = FindLiteMonitorRight();
                 float scale;
                 using (var graphics = CreateGraphics()) scale = graphics.DpiX / 96f;
-                Left = liteRight > 0 ? (int)Math.Round((liteRight + 12) * Math.Max(1f, scale)) : data.rc.left + 180;
+                int defaultLeft = liteRight > 0 ? (int)Math.Round((liteRight + 12) * Math.Max(1f, scale)) : data.rc.left + 180;
+                Left = Math.Max(data.rc.left, Math.Min(data.rc.right - Width, defaultLeft + horizontalOffset));
                 Top = data.rc.top + (taskHeight - Height) / 2;
             }
             else
@@ -199,6 +212,31 @@ namespace ClashLeftWidget
                 Height = 120;
                 Left = data.rc.left + (taskWidth - Width) / 2;
                 Top = data.rc.top + 10;
+            }
+        }
+
+        private void KeepAboveWindows()
+        {
+            if (!IsHandleCreated || !Visible) return;
+            SetWindowPos(Handle, new IntPtr(-1), Left, Top, Width, Height,
+                SWP_NOACTIVATE | SWP_SHOWWINDOW);
+        }
+
+        private void ShowSettings()
+        {
+            using (var dialog = new SettingsForm(horizontalOffset, refreshSeconds, IsStartupEnabled()))
+            {
+                if (dialog.ShowDialog(this) != DialogResult.OK) return;
+                horizontalOffset = dialog.HorizontalOffset;
+                refreshSeconds = dialog.RefreshSeconds;
+                refreshTimer.Interval = refreshSeconds * 1000;
+                SetStartup(dialog.StartWithWindows);
+                WriteSetting("HorizontalOffset", horizontalOffset);
+                WriteSetting("RefreshSeconds", refreshSeconds);
+                var startupItem = menu.Items.OfType<ToolStripMenuItem>().FirstOrDefault(i => i.Text == "开机自启");
+                if (startupItem != null) startupItem.Checked = dialog.StartWithWindows;
+                PlaceOnTaskbar();
+                KeepAboveWindows();
             }
         }
 
@@ -331,6 +369,8 @@ namespace ClashLeftWidget
 
         private static bool IsStartupEnabled() { using (var k = Registry.CurrentUser.OpenSubKey(RunKey)) return k != null && k.GetValue(RunValue) != null; }
         private static void SetStartup(bool enabled) { using (var k = Registry.CurrentUser.CreateSubKey(RunKey)) { if (enabled) k.SetValue(RunValue, "\"" + Application.ExecutablePath + "\""); else k.DeleteValue(RunValue, false); } }
+        private static int ReadSetting(string name, int fallback, int min, int max) { using (var k = Registry.CurrentUser.OpenSubKey(SettingsKey)) { int value; if (k != null && int.TryParse(Convert.ToString(k.GetValue(name)), out value)) return Math.Max(min, Math.Min(max, value)); } return fallback; }
+        private static void WriteSetting(string name, int value) { using (var k = Registry.CurrentUser.CreateSubKey(SettingsKey)) k.SetValue(name, value, RegistryValueKind.DWord); }
 
         private sealed class Resolved { public string NodeName; public List<string> Chain; public int Delay; public bool Alive; }
         [StructLayout(LayoutKind.Sequential)] private struct RECT { public int left, top, right, bottom; }
@@ -340,5 +380,52 @@ namespace ClashLeftWidget
         [DllImport("user32.dll")] private static extern bool EnumWindows(EnumWindowsProc callback, IntPtr lParam);
         [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
         [DllImport("user32.dll")] private static extern bool GetWindowRect(IntPtr hWnd, out RECT rect);
+        private const uint SWP_NOACTIVATE = 0x0010;
+        private const uint SWP_SHOWWINDOW = 0x0040;
+        [DllImport("user32.dll", SetLastError = true)] private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int x, int y, int cx, int cy, uint flags);
+    }
+
+    internal sealed class SettingsForm : Form
+    {
+        private readonly NumericUpDown offset = new NumericUpDown();
+        private readonly NumericUpDown refresh = new NumericUpDown();
+        private readonly CheckBox startup = new CheckBox();
+
+        public int HorizontalOffset { get { return Decimal.ToInt32(offset.Value); } }
+        public int RefreshSeconds { get { return Decimal.ToInt32(refresh.Value); } }
+        public bool StartWithWindows { get { return startup.Checked; } }
+
+        public SettingsForm(int horizontalOffset, int refreshSeconds, bool startWithWindows)
+        {
+            Text = "Clash 节点显示设置";
+            FormBorderStyle = FormBorderStyle.FixedDialog;
+            MaximizeBox = false;
+            MinimizeBox = false;
+            ShowInTaskbar = false;
+            StartPosition = FormStartPosition.CenterScreen;
+            ClientSize = new Size(390, 225);
+            Font = new Font("Microsoft YaHei UI", 9f);
+
+            var title = new Label { Text = "显示设置", Font = new Font("Microsoft YaHei UI", 12f, FontStyle.Bold), AutoSize = true, Location = new Point(22, 18) };
+            var positionLabel = new Label { Text = "水平位置偏移", AutoSize = true, Location = new Point(24, 66) };
+            offset.Minimum = -1000; offset.Maximum = 1000; offset.Increment = 5; offset.Value = Math.Max(-1000, Math.Min(1000, horizontalOffset));
+            offset.Location = new Point(160, 62); offset.Width = 105;
+            var px = new Label { Text = "像素（负数向左，正数向右）", AutoSize = true, ForeColor = Color.DimGray, Location = new Point(273, 66) };
+
+            var refreshLabel = new Label { Text = "状态刷新间隔", AutoSize = true, Location = new Point(24, 105) };
+            refresh.Minimum = 2; refresh.Maximum = 60; refresh.Value = Math.Max(2, Math.Min(60, refreshSeconds));
+            refresh.Location = new Point(160, 101); refresh.Width = 105;
+            var seconds = new Label { Text = "秒", AutoSize = true, ForeColor = Color.DimGray, Location = new Point(273, 105) };
+
+            startup.Text = "随 Windows 启动（Clash 未运行时自动隐藏）";
+            startup.AutoSize = true; startup.Checked = startWithWindows; startup.Location = new Point(24, 140);
+
+            var defaults = new Button { Text = "恢复默认位置", AutoSize = true, Location = new Point(24, 181) };
+            defaults.Click += delegate { offset.Value = 0; };
+            var cancel = new Button { Text = "取消", DialogResult = DialogResult.Cancel, Size = new Size(75, 28), Location = new Point(220, 179) };
+            var save = new Button { Text = "保存", DialogResult = DialogResult.OK, Size = new Size(75, 28), Location = new Point(303, 179) };
+            AcceptButton = save; CancelButton = cancel;
+            Controls.AddRange(new Control[] { title, positionLabel, offset, px, refreshLabel, refresh, seconds, startup, defaults, cancel, save });
+        }
     }
 }

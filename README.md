@@ -21,7 +21,7 @@ The widget does not open a network port, upload telemetry, read subscription URL
 - Starts with Windows, stays hidden while `clash-verge.exe` is not running, and appears automatically with Clash.
 - Detects LiteMonitor and places itself to its right.
 - Reasserts its taskbar overlay layer after maximized/full-screen window changes without taking keyboard focus.
-- Includes a Chinese settings window for horizontal position offset, refresh interval, startup, and restoring the current automatic position.
+- Includes a settings window with live horizontal-position preview, refresh interval, startup, reset, and Chinese/English language selection.
 - Supports Hong Kong, Taiwan, Singapore, Japan, United States, and South Korea flags.
 
 ## Download
@@ -48,7 +48,7 @@ The executable is written to `dist/ClashLeftWidget.exe`.
 
 ## Configuration
 
-Right-click the widget and select **设置…**. The current automatic position (to the right of LiteMonitor when detected) is offset `0` and remains the default. A negative horizontal offset moves the display left; a positive value moves it right. Settings are saved per Windows user.
+Right-click the widget and select **设置… / Settings…**. Drag the position slider to preview movement immediately. Cancel restores the position from before the dialog was opened; Save keeps it. The current automatic position (to the right of LiteMonitor when detected) is offset `0` and remains the default. The interface can be switched between Chinese and English. Settings are saved per Windows user.
 
 The Mihomo pipe name (`verge-mihomo`), root policy group (`🚀 节点选择`), and latency thresholds remain source-level settings for now.
 

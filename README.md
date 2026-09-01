@@ -1,6 +1,8 @@
 # Clash Verge Toolbar Widget
 
-A lightweight Windows taskbar-side status widget for **Clash Verge Rev / Mihomo**.
+一款轻量的 Windows 任务栏节点状态组件，适用于 **Clash Verge Rev / Mihomo**。它可以实时显示当前节点地区、节点简称和延迟，并提供位置微调、双语界面及可靠的开机启动功能。
+
+*A lightweight Windows taskbar status widget for **Clash Verge Rev / Mihomo**, showing the current node region, compact name, and latency in real time, with position controls, a bilingual interface, and reliable startup.*
 
 ![Clash Verge Toolbar Widget preview](assets/screenshots/toolbar-preview.png)
 

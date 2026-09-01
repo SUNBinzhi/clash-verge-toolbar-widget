@@ -20,7 +20,7 @@ The widget does not open a network port, upload telemetry, read subscription URL
 - Orange: 180–349 ms.
 - Red: 350 ms or above, or unavailable.
 - Gray: no recent result.
-- Starts with Windows, stays hidden while `clash-verge.exe` is not running, and appears automatically with Clash.
+- Starts through a delayed logon task for reliable Windows startup, stays hidden while `clash-verge.exe` is not running, and appears automatically with Clash.
 - Detects LiteMonitor and places itself to its right.
 - Reasserts its taskbar overlay layer after maximized/full-screen window changes without taking keyboard focus.
 - Includes a spacious, DPI-aware settings window with live horizontal/vertical position preview, refresh interval, startup, reset, and Chinese/English language selection.

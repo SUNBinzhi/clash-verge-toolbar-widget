@@ -37,6 +37,7 @@ namespace ClashLeftWidget
         private const string RootGroup = "🚀 节点选择";
         private const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
         private const string RunValue = "ClashLeftWidget";
+        private const string StartupTaskName = "Clash Verge Toolbar Widget";
         private const string SettingsKey = @"Software\ClashLeftWidget";
         private readonly System.Windows.Forms.Timer refreshTimer = new System.Windows.Forms.Timer();
         private readonly System.Windows.Forms.Timer positionTimer = new System.Windows.Forms.Timer();
@@ -412,8 +413,44 @@ namespace ClashLeftWidget
             return best;
         }
 
-        private static bool IsStartupEnabled() { using (var k = Registry.CurrentUser.OpenSubKey(RunKey)) return k != null && k.GetValue(RunValue) != null; }
-        private static void SetStartup(bool enabled) { using (var k = Registry.CurrentUser.CreateSubKey(RunKey)) { if (enabled) k.SetValue(RunValue, "\"" + Application.ExecutablePath + "\""); else k.DeleteValue(RunValue, false); } }
+        private static bool IsStartupEnabled()
+        {
+            if (RunSchtasks("/Query /TN \"" + StartupTaskName + "\"")) return true;
+            using (var k = Registry.CurrentUser.OpenSubKey(RunKey)) return k != null && k.GetValue(RunValue) != null;
+        }
+
+        private static void SetStartup(bool enabled)
+        {
+            using (var k = Registry.CurrentUser.CreateSubKey(RunKey))
+            {
+                if (enabled) k.SetValue(RunValue, "\"" + Application.ExecutablePath + "\"");
+                else k.DeleteValue(RunValue, false);
+            }
+            if (enabled)
+            {
+                string taskCommand = "\\\"" + Application.ExecutablePath + "\\\"";
+                RunSchtasks("/Create /TN \"" + StartupTaskName + "\" /TR \"" + taskCommand + "\" /SC ONLOGON /DELAY 0000:20 /RL LIMITED /F");
+            }
+            else RunSchtasks("/Delete /TN \"" + StartupTaskName + "\" /F");
+        }
+
+        private static bool RunSchtasks(string arguments)
+        {
+            try
+            {
+                using (var process = Process.Start(new ProcessStartInfo("schtasks.exe", arguments)
+                {
+                    CreateNoWindow = true,
+                    UseShellExecute = false,
+                    WindowStyle = ProcessWindowStyle.Hidden
+                }))
+                {
+                    process.WaitForExit(5000);
+                    return process.HasExited && process.ExitCode == 0;
+                }
+            }
+            catch { return false; }
+        }
         private static int ReadSetting(string name, int fallback, int min, int max) { using (var k = Registry.CurrentUser.OpenSubKey(SettingsKey)) { int value; if (k != null && int.TryParse(Convert.ToString(k.GetValue(name)), out value)) return Math.Max(min, Math.Min(max, value)); } return fallback; }
         private static void WriteSetting(string name, int value) { using (var k = Registry.CurrentUser.CreateSubKey(SettingsKey)) k.SetValue(name, value, RegistryValueKind.DWord); }
         private static string ReadTextSetting(string name, string fallback) { using (var k = Registry.CurrentUser.OpenSubKey(SettingsKey)) { var value = k == null ? null : k.GetValue(name); return value == null ? fallback : Convert.ToString(value); } }

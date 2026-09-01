@@ -22,7 +22,7 @@ namespace ClashLeftWidget
         private static void Main()
         {
             bool created;
-            using (var mutex = new Mutex(true, "Local\\ClashLeftWidget-MeCloud", out created))
+            using (var mutex = new Mutex(true, "Local\\ClashVergeToolbarWidget-v2", out created))
             {
                 if (!created) return;
                 Application.EnableVisualStyles();

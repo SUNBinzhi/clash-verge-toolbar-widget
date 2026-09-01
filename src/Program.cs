@@ -534,7 +534,7 @@ namespace ClashLeftWidget
 
             title.Font = new Font("Microsoft YaHei UI", 16f, FontStyle.Bold);
             title.ForeColor = Color.FromArgb(30, 45, 70); title.AutoSize = false;
-            title.Location = new Point(24, 18); title.Size = new Size(532, 38);
+            title.Location = new Point(24, 14); title.Size = new Size(532, 46); title.TextAlign = ContentAlignment.MiddleLeft;
 
             positionGroup.Location = new Point(20, 70); positionGroup.Size = new Size(540, 225);
             positionGroup.BackColor = Color.White; positionGroup.ForeColor = Color.FromArgb(55, 68, 90);

@@ -2,6 +2,8 @@
 
 A lightweight Windows taskbar-side status widget for **Clash Verge Rev / Mihomo**.
 
+![Clash Verge Toolbar Widget preview](assets/screenshots/toolbar-preview.png)
+
 It sits in the unused area on the far left of a centered Windows 11 taskbar, reads Mihomo state through the local named pipe, and displays:
 
 - the current exit region flag;

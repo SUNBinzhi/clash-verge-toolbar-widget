@@ -525,8 +525,8 @@ namespace ClashLeftWidget
             MinimizeBox = false;
             ShowInTaskbar = false;
             StartPosition = FormStartPosition.CenterScreen;
-            ClientSize = new Size(580, 520);
-            MinimumSize = new Size(596, 559);
+            ClientSize = new Size(580, 550);
+            MinimumSize = new Size(596, 589);
             Font = new Font("Microsoft YaHei UI", 9.5f);
             AutoScaleMode = AutoScaleMode.Dpi;
             BackColor = Color.FromArgb(246, 248, 252);
@@ -550,7 +550,7 @@ namespace ClashLeftWidget
             verticalOffset.Scroll += delegate { verticalOffsetValue.Text = FormatOffset(verticalOffset.Value); Preview(); };
             positionGroup.Controls.AddRange(new Control[] { horizontalLabel, offset, offsetValue, verticalLabel, verticalOffset, verticalOffsetValue });
 
-            generalGroup.Location = new Point(20, 310); generalGroup.Size = new Size(540, 135);
+            generalGroup.Location = new Point(20, 310); generalGroup.Size = new Size(540, 165);
             generalGroup.BackColor = Color.White; generalGroup.ForeColor = Color.FromArgb(55, 68, 90);
             refreshLabel.Location = new Point(18, 32); refreshLabel.Size = new Size(190, 26);
             refresh.Minimum = 2; refresh.Maximum = 60; refresh.Value = Math.Max(2, Math.Min(60, refreshSeconds));
@@ -559,15 +559,15 @@ namespace ClashLeftWidget
 
             languageLabel.Location = new Point(18, 70); languageLabel.Size = new Size(190, 26);
             language.DropDownStyle = ComboBoxStyle.DropDownList; language.Items.AddRange(new object[] { "中文 / Chinese", "English / 英文" });
-            language.Location = new Point(210, 67); language.Size = new Size(140, 28);
+            language.Location = new Point(210, 67); language.Size = new Size(230, 28); language.DropDownWidth = 230;
 
-            startup.AutoSize = false; startup.Checked = startWithWindows; startup.Location = new Point(18, 101); startup.Size = new Size(505, 26);
+            startup.AutoSize = false; startup.Checked = startWithWindows; startup.Location = new Point(18, 101); startup.Size = new Size(505, 52);
             generalGroup.Controls.AddRange(new Control[] { refreshLabel, refresh, secondsLabel, languageLabel, language, startup });
 
-            StyleButton(defaults, false); defaults.Location = new Point(20, 466); defaults.Size = new Size(145, 36);
+            StyleButton(defaults, false); defaults.Location = new Point(20, 496); defaults.Size = new Size(145, 36);
             defaults.Click += delegate { offset.Value = 0; verticalOffset.Value = 0; offsetValue.Text = FormatOffset(0); verticalOffsetValue.Text = FormatOffset(0); Preview(); };
-            StyleButton(cancel, false); cancel.DialogResult = DialogResult.Cancel; cancel.Location = new Point(382, 466); cancel.Size = new Size(82, 36);
-            StyleButton(save, true); save.DialogResult = DialogResult.OK; save.Location = new Point(474, 466); save.Size = new Size(86, 36);
+            StyleButton(cancel, false); cancel.DialogResult = DialogResult.Cancel; cancel.Location = new Point(382, 496); cancel.Size = new Size(82, 36);
+            StyleButton(save, true); save.DialogResult = DialogResult.OK; save.Location = new Point(474, 496); save.Size = new Size(86, 36);
             AcceptButton = save; CancelButton = cancel;
             Controls.AddRange(new Control[] { title, positionGroup, generalGroup, defaults, cancel, save });
 

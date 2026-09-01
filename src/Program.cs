@@ -41,6 +41,7 @@ namespace ClashLeftWidget
         private const string SettingsKey = @"Software\ClashLeftWidget";
         private readonly System.Windows.Forms.Timer refreshTimer = new System.Windows.Forms.Timer();
         private readonly System.Windows.Forms.Timer positionTimer = new System.Windows.Forms.Timer();
+        private readonly System.Windows.Forms.Timer menuDismissTimer = new System.Windows.Forms.Timer();
         private readonly ContextMenuStrip menu = new ContextMenuStrip();
         private readonly ToolTip tip = new ToolTip();
         private readonly ToolStripMenuItem statusMenuItem = new ToolStripMenuItem();
@@ -58,6 +59,7 @@ namespace ClashLeftWidget
         private int verticalOffset;
         private int refreshSeconds;
         private string language;
+        private DateTime menuOpenedAt;
 
         public WidgetForm()
         {
@@ -90,6 +92,9 @@ namespace ClashLeftWidget
             menu.Items.Add(startupMenuItem);
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add(exitMenuItem);
+            menu.AutoClose = true;
+            menu.Opened += delegate { menuOpenedAt = DateTime.UtcNow; menuDismissTimer.Start(); };
+            menu.Closed += delegate { menuDismissTimer.Stop(); };
             ContextMenuStrip = menu;
             ApplyLanguage();
 
@@ -105,6 +110,13 @@ namespace ClashLeftWidget
             positionTimer.Interval = 1000;
             positionTimer.Tick += delegate { SyncWithClash(); };
             positionTimer.Start();
+            menuDismissTimer.Interval = 60;
+            menuDismissTimer.Tick += delegate
+            {
+                if ((DateTime.UtcNow - menuOpenedAt).TotalMilliseconds < 250) return;
+                bool pressed = (GetAsyncKeyState(0x01) & 0x8000) != 0 || (GetAsyncKeyState(0x02) & 0x8000) != 0;
+                if (pressed && !menu.Bounds.Contains(Cursor.Position)) menu.Close();
+            };
         }
 
         private void SyncWithClash()
@@ -429,7 +441,7 @@ namespace ClashLeftWidget
             if (enabled)
             {
                 string taskCommand = "\\\"" + Application.ExecutablePath + "\\\"";
-                RunSchtasks("/Create /TN \"" + StartupTaskName + "\" /TR \"" + taskCommand + "\" /SC ONLOGON /DELAY 0000:20 /RL LIMITED /F");
+                RunSchtasks("/Create /TN \"" + StartupTaskName + "\" /TR \"" + taskCommand + "\" /SC ONLOGON /DELAY 0000:08 /RL LIMITED /F");
             }
             else RunSchtasks("/Delete /TN \"" + StartupTaskName + "\" /F");
         }
@@ -467,6 +479,7 @@ namespace ClashLeftWidget
         private const uint SWP_NOACTIVATE = 0x0010;
         private const uint SWP_SHOWWINDOW = 0x0040;
         [DllImport("user32.dll", SetLastError = true)] private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int x, int y, int cx, int cy, uint flags);
+        [DllImport("user32.dll")] private static extern short GetAsyncKeyState(int virtualKey);
     }
 
     internal sealed class SettingsForm : Form
@@ -479,6 +492,17 @@ namespace ClashLeftWidget
         private readonly CheckBox startup = new CheckBox();
         private readonly ComboBox language = new ComboBox();
         private readonly Action<int, int> previewPosition;
+        private readonly Label title = new Label();
+        private readonly GroupBox positionGroup = new GroupBox();
+        private readonly Label horizontalLabel = new Label();
+        private readonly Label verticalLabel = new Label();
+        private readonly GroupBox generalGroup = new GroupBox();
+        private readonly Label refreshLabel = new Label();
+        private readonly Label secondsLabel = new Label();
+        private readonly Label languageLabel = new Label();
+        private readonly Button defaults = new Button();
+        private readonly Button cancel = new Button();
+        private readonly Button save = new Button();
 
         public int HorizontalOffset { get { return offset.Value; } }
         public int VerticalOffset { get { return verticalOffset.Value; } }
@@ -489,51 +513,91 @@ namespace ClashLeftWidget
         public SettingsForm(int horizontalOffset, int currentVerticalOffset, int refreshSeconds, bool startWithWindows, string currentLanguage, Action<int, int> positionPreview)
         {
             previewPosition = positionPreview;
-            bool en = currentLanguage == "en";
-            Text = en ? "Clash node display settings" : "Clash 节点显示设置";
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
             MinimizeBox = false;
             ShowInTaskbar = false;
             StartPosition = FormStartPosition.CenterScreen;
-            ClientSize = new Size(480, 445);
-            Font = new Font("Microsoft YaHei UI", 9f);
+            ClientSize = new Size(580, 520);
+            MinimumSize = new Size(596, 559);
+            Font = new Font("Microsoft YaHei UI", 9.5f);
             AutoScaleMode = AutoScaleMode.Dpi;
+            BackColor = Color.FromArgb(246, 248, 252);
 
-            var title = new Label { Text = en ? "Display settings" : "显示设置", Font = new Font("Microsoft YaHei UI", 12f, FontStyle.Bold), AutoSize = true, Location = new Point(22, 18) };
-            var positionLabel = new Label { Text = en ? "Horizontal position (live preview)" : "水平位置（拖动时实时预览）", AutoSize = true, Location = new Point(24, 60) };
+            title.Font = new Font("Microsoft YaHei UI", 16f, FontStyle.Bold);
+            title.ForeColor = Color.FromArgb(30, 45, 70); title.AutoSize = false;
+            title.Location = new Point(24, 18); title.Size = new Size(532, 38);
+
+            positionGroup.Location = new Point(20, 70); positionGroup.Size = new Size(540, 225);
+            positionGroup.BackColor = Color.White; positionGroup.ForeColor = Color.FromArgb(55, 68, 90);
+            horizontalLabel.Location = new Point(18, 32); horizontalLabel.Size = new Size(410, 24);
             offset.Minimum = -500; offset.Maximum = 500; offset.SmallChange = 5; offset.LargeChange = 25; offset.TickFrequency = 50;
-            offset.Value = Math.Max(-500, Math.Min(500, horizontalOffset)); offset.Location = new Point(20, 82); offset.Width = 390;
-            offsetValue.AutoSize = true; offsetValue.Location = new Point(416, 88); offsetValue.Text = FormatOffset(offset.Value);
+            offset.Value = Math.Max(-500, Math.Min(500, horizontalOffset)); offset.Location = new Point(14, 58); offset.Size = new Size(445, 45);
+            offsetValue.Location = new Point(466, 64); offsetValue.Size = new Size(62, 24); offsetValue.TextAlign = ContentAlignment.MiddleRight; offsetValue.Text = FormatOffset(offset.Value);
             offset.Scroll += delegate { offsetValue.Text = FormatOffset(offset.Value); Preview(); };
 
-            var verticalLabel = new Label { Text = en ? "Vertical position (live preview)" : "垂直位置（拖动时实时预览）", AutoSize = true, Location = new Point(24, 180) };
+            verticalLabel.Location = new Point(18, 122); verticalLabel.Size = new Size(410, 24);
             verticalOffset.Minimum = -30; verticalOffset.Maximum = 30; verticalOffset.SmallChange = 1; verticalOffset.LargeChange = 5; verticalOffset.TickFrequency = 5;
-            verticalOffset.Value = Math.Max(-30, Math.Min(30, currentVerticalOffset)); verticalOffset.Location = new Point(20, 202); verticalOffset.Width = 390;
-            verticalOffsetValue.AutoSize = true; verticalOffsetValue.Location = new Point(416, 208); verticalOffsetValue.Text = FormatOffset(verticalOffset.Value);
+            verticalOffset.Value = Math.Max(-30, Math.Min(30, currentVerticalOffset)); verticalOffset.Location = new Point(14, 148); verticalOffset.Size = new Size(445, 45);
+            verticalOffsetValue.Location = new Point(466, 154); verticalOffsetValue.Size = new Size(62, 24); verticalOffsetValue.TextAlign = ContentAlignment.MiddleRight; verticalOffsetValue.Text = FormatOffset(verticalOffset.Value);
             verticalOffset.Scroll += delegate { verticalOffsetValue.Text = FormatOffset(verticalOffset.Value); Preview(); };
+            positionGroup.Controls.AddRange(new Control[] { horizontalLabel, offset, offsetValue, verticalLabel, verticalOffset, verticalOffsetValue });
 
-            var refreshLabel = new Label { Text = en ? "Refresh interval" : "状态刷新间隔", AutoSize = true, Location = new Point(24, 270) };
+            generalGroup.Location = new Point(20, 310); generalGroup.Size = new Size(540, 135);
+            generalGroup.BackColor = Color.White; generalGroup.ForeColor = Color.FromArgb(55, 68, 90);
+            refreshLabel.Location = new Point(18, 32); refreshLabel.Size = new Size(190, 26);
             refresh.Minimum = 2; refresh.Maximum = 60; refresh.Value = Math.Max(2, Math.Min(60, refreshSeconds));
-            refresh.Location = new Point(170, 266); refresh.Width = 105;
-            var seconds = new Label { Text = en ? "seconds" : "秒", AutoSize = true, ForeColor = Color.DimGray, Location = new Point(283, 270) };
+            refresh.Location = new Point(210, 29); refresh.Size = new Size(90, 26);
+            secondsLabel.Location = new Point(308, 32); secondsLabel.Size = new Size(90, 26); secondsLabel.ForeColor = Color.DimGray;
 
-            var languageLabel = new Label { Text = en ? "Language" : "界面语言", AutoSize = true, Location = new Point(24, 311) };
+            languageLabel.Location = new Point(18, 70); languageLabel.Size = new Size(190, 26);
             language.DropDownStyle = ComboBoxStyle.DropDownList; language.Items.AddRange(new object[] { "中文", "English" });
-            language.SelectedIndex = currentLanguage == "en" ? 1 : 0; language.Location = new Point(170, 307); language.Width = 105;
+            language.Location = new Point(210, 67); language.Size = new Size(140, 28);
 
-            startup.Text = en ? "Start with Windows (hide while Clash is not running)" : "随 Windows 启动（Clash 未运行时自动隐藏）";
-            startup.AutoSize = true; startup.Checked = startWithWindows; startup.Location = new Point(24, 350);
+            startup.AutoSize = false; startup.Checked = startWithWindows; startup.Location = new Point(18, 101); startup.Size = new Size(505, 26);
+            generalGroup.Controls.AddRange(new Control[] { refreshLabel, refresh, secondsLabel, languageLabel, language, startup });
 
-            var defaults = new Button { Text = en ? "Reset position" : "恢复默认位置", AutoSize = true, Location = new Point(24, 395) };
+            StyleButton(defaults, false); defaults.Location = new Point(20, 466); defaults.Size = new Size(145, 36);
             defaults.Click += delegate { offset.Value = 0; verticalOffset.Value = 0; offsetValue.Text = FormatOffset(0); verticalOffsetValue.Text = FormatOffset(0); Preview(); };
-            var cancel = new Button { Text = en ? "Cancel" : "取消", DialogResult = DialogResult.Cancel, Size = new Size(75, 28), Location = new Point(312, 393) };
-            var save = new Button { Text = en ? "Save" : "保存", DialogResult = DialogResult.OK, Size = new Size(75, 28), Location = new Point(393, 393) };
+            StyleButton(cancel, false); cancel.DialogResult = DialogResult.Cancel; cancel.Location = new Point(382, 466); cancel.Size = new Size(82, 36);
+            StyleButton(save, true); save.DialogResult = DialogResult.OK; save.Location = new Point(474, 466); save.Size = new Size(86, 36);
             AcceptButton = save; CancelButton = cancel;
-            Controls.AddRange(new Control[] { title, positionLabel, offset, offsetValue, verticalLabel, verticalOffset, verticalOffsetValue, refreshLabel, refresh, seconds, languageLabel, language, startup, defaults, cancel, save });
+            Controls.AddRange(new Control[] { title, positionGroup, generalGroup, defaults, cancel, save });
+
+            language.SelectedIndex = currentLanguage == "en" ? 1 : 0;
+            language.SelectedIndexChanged += delegate { ApplyLanguage(); };
+            ApplyLanguage();
         }
 
         private void Preview() { if (previewPosition != null) previewPosition(offset.Value, verticalOffset.Value); }
         private static string FormatOffset(int value) { return (value > 0 ? "+" : "") + value + " px"; }
+
+        private void ApplyLanguage()
+        {
+            bool en = Language == "en";
+            Text = en ? "Clash Verge Toolbar Widget — Settings" : "Clash Verge Toolbar Widget — 设置";
+            title.Text = en ? "Display settings" : "显示设置";
+            positionGroup.Text = en ? " Position " : " 位置 ";
+            horizontalLabel.Text = en ? "Horizontal position · live preview" : "水平位置 · 实时预览";
+            verticalLabel.Text = en ? "Vertical position · live preview" : "垂直位置 · 实时预览";
+            generalGroup.Text = en ? " General " : " 常规 ";
+            refreshLabel.Text = en ? "Status refresh interval" : "状态刷新间隔";
+            secondsLabel.Text = en ? "seconds" : "秒";
+            languageLabel.Text = en ? "Interface language" : "界面语言";
+            startup.Text = en ? "Start with Windows · hide automatically while Clash is not running" : "随 Windows 启动 · Clash 未运行时自动隐藏";
+            defaults.Text = en ? "Reset position" : "恢复默认位置";
+            cancel.Text = en ? "Cancel" : "取消";
+            save.Text = en ? "Save" : "保存";
+        }
+
+        private static void StyleButton(Button button, bool primary)
+        {
+            button.FlatStyle = FlatStyle.Flat;
+            button.FlatAppearance.BorderSize = primary ? 0 : 1;
+            button.FlatAppearance.BorderColor = Color.FromArgb(185, 194, 210);
+            button.BackColor = primary ? Color.FromArgb(32, 120, 245) : Color.White;
+            button.ForeColor = primary ? Color.White : Color.FromArgb(45, 58, 78);
+            button.Cursor = Cursors.Hand;
+        }
     }
 }

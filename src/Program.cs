@@ -497,6 +497,7 @@ namespace ClashLeftWidget
         private readonly Label verticalOffsetValue = new Label();
         private readonly NumericUpDown refresh = new NumericUpDown();
         private readonly CheckBox startup = new CheckBox();
+        private readonly Label startupHint = new Label();
         private readonly ComboBox language = new ComboBox();
         private readonly Action<int, int> previewPosition;
         private readonly Label title = new Label();
@@ -561,8 +562,9 @@ namespace ClashLeftWidget
             language.DropDownStyle = ComboBoxStyle.DropDownList; language.Items.AddRange(new object[] { "中文 / Chinese", "English / 英文" });
             language.Location = new Point(210, 67); language.Size = new Size(230, 28); language.DropDownWidth = 230;
 
-            startup.AutoSize = false; startup.Checked = startWithWindows; startup.Location = new Point(18, 101); startup.Size = new Size(505, 52);
-            generalGroup.Controls.AddRange(new Control[] { refreshLabel, refresh, secondsLabel, languageLabel, language, startup });
+            startup.AutoSize = false; startup.Checked = startWithWindows; startup.Location = new Point(18, 101); startup.Size = new Size(505, 27);
+            startupHint.Location = new Point(42, 128); startupHint.Size = new Size(480, 24); startupHint.ForeColor = Color.FromArgb(105, 115, 132);
+            generalGroup.Controls.AddRange(new Control[] { refreshLabel, refresh, secondsLabel, languageLabel, language, startup, startupHint });
 
             StyleButton(defaults, false); defaults.Location = new Point(20, 496); defaults.Size = new Size(145, 36);
             defaults.Click += delegate { offset.Value = 0; verticalOffset.Value = 0; offsetValue.Text = FormatOffset(0); verticalOffsetValue.Text = FormatOffset(0); Preview(); };
@@ -591,7 +593,8 @@ namespace ClashLeftWidget
             refreshLabel.Text = en ? "Status refresh interval" : "状态刷新间隔";
             secondsLabel.Text = en ? "seconds" : "秒";
             languageLabel.Text = "语言 / Language";
-            startup.Text = en ? "Start with Windows · hide automatically while Clash is not running" : "随 Windows 启动 · Clash 未运行时自动隐藏";
+            startup.Text = en ? "Start with Windows" : "随 Windows 启动";
+            startupHint.Text = en ? "Automatically hides while Clash is not running." : "Clash 未运行时自动隐藏。";
             defaults.Text = en ? "Reset position" : "恢复默认位置";
             cancel.Text = en ? "Cancel" : "取消";
             save.Text = en ? "Save" : "保存";

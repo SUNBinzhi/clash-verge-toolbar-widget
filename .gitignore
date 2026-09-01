@@ -1,0 +1,9 @@
+*.user
+*.suo
+*.pdb
+*.log
+.vs/
+bin/
+obj/
+work/
+screenshots/

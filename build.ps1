@@ -28,8 +28,9 @@ $arguments = @(
     ('/out:' + $output)
 )
 
-foreach ($code in @('hk', 'tw', 'sg', 'jp', 'us', 'kr')) {
-    $arguments += '/resource:' + (Join-Path $flagsDir ($code + '.png')) + ',flags.' + $code + '.png'
+foreach ($flag in Get-ChildItem -LiteralPath $flagsDir -Filter '*.png') {
+    $code = [System.IO.Path]::GetFileNameWithoutExtension($flag.Name).ToLowerInvariant()
+    $arguments += '/resource:' + $flag.FullName + ',flags.' + $code + '.png'
 }
 
 $arguments += Join-Path $sourceDir 'Program.cs'

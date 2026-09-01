@@ -1,0 +1,5 @@
+Country flag PNG assets are sourced from:
+https://github.com/csmoore/country-flag-icons
+
+The project and its additional/original work are provided under the MIT License.
+Its README attributes the SVG source artwork to the upstream flag-icon project.

@@ -54,6 +54,7 @@ namespace ClashLeftWidget
         private Color statusColor = Color.FromArgb(125, 132, 145);
         private bool polling;
         private int horizontalOffset;
+        private int verticalOffset;
         private int refreshSeconds;
         private string language;
 
@@ -71,6 +72,7 @@ namespace ClashLeftWidget
             Cursor = Cursors.Hand;
             Text = "Clash 节点状态";
             horizontalOffset = ReadSetting("HorizontalOffset", 0, -1000, 1000);
+            verticalOffset = ReadSetting("VerticalOffset", 0, -100, 100);
             refreshSeconds = ReadSetting("RefreshSeconds", 5, 2, 60);
             language = ReadTextSetting("Language", "zh") == "en" ? "en" : "zh";
 
@@ -208,7 +210,7 @@ namespace ClashLeftWidget
                 using (var graphics = CreateGraphics()) scale = graphics.DpiX / 96f;
                 int defaultLeft = liteRight > 0 ? (int)Math.Round((liteRight + 12) * Math.Max(1f, scale)) : data.rc.left + 180;
                 Left = Math.Max(data.rc.left, Math.Min(data.rc.right - Width, defaultLeft + horizontalOffset));
-                Top = data.rc.top + (taskHeight - Height) / 2;
+                Top = data.rc.top + (taskHeight - Height) / 2 + verticalOffset;
             }
             else
             {
@@ -228,22 +230,26 @@ namespace ClashLeftWidget
 
         private void ShowSettings()
         {
-            int originalOffset = horizontalOffset;
-            using (var dialog = new SettingsForm(horizontalOffset, refreshSeconds, IsStartupEnabled(), language,
-                delegate(int value) { horizontalOffset = value; PlaceOnTaskbar(); KeepAboveWindows(); }))
+            int originalHorizontalOffset = horizontalOffset;
+            int originalVerticalOffset = verticalOffset;
+            using (var dialog = new SettingsForm(horizontalOffset, verticalOffset, refreshSeconds, IsStartupEnabled(), language,
+                delegate(int horizontal, int vertical) { horizontalOffset = horizontal; verticalOffset = vertical; PlaceOnTaskbar(); KeepAboveWindows(); }))
             {
                 if (dialog.ShowDialog(this) != DialogResult.OK)
                 {
-                    horizontalOffset = originalOffset;
+                    horizontalOffset = originalHorizontalOffset;
+                    verticalOffset = originalVerticalOffset;
                     PlaceOnTaskbar(); KeepAboveWindows();
                     return;
                 }
                 horizontalOffset = dialog.HorizontalOffset;
+                verticalOffset = dialog.VerticalOffset;
                 refreshSeconds = dialog.RefreshSeconds;
                 language = dialog.Language;
                 refreshTimer.Interval = refreshSeconds * 1000;
                 SetStartup(dialog.StartWithWindows);
                 WriteSetting("HorizontalOffset", horizontalOffset);
+                WriteSetting("VerticalOffset", verticalOffset);
                 WriteSetting("RefreshSeconds", refreshSeconds);
                 WriteTextSetting("Language", language);
                 startupMenuItem.Checked = dialog.StartWithWindows;
@@ -288,9 +294,23 @@ namespace ClashLeftWidget
 
         private static string RegionCode(string n)
         {
-            if (Has(n, "🇭🇰", "香港", "深港")) return "HK"; if (Has(n, "🇨🇳", "台湾", "广台")) return "TW";
+            if (Has(n, "🇭🇰", "香港", "深港", "Hong Kong")) return "HK"; if (Has(n, "台湾", "广台", "Taiwan")) return "TW";
+            if (Has(n, "🇨🇳", "中国", "大陆", "China")) return "CN";
             if (Has(n, "🇸🇬", "新加坡", "新坡", "广新")) return "SG"; if (Has(n, "🇯🇵", "日本", "沪日")) return "JP";
-            if (Has(n, "🇺🇲", "🇺🇸", "美国", "沪美", "美西", "美东")) return "US"; if (Has(n, "🇰🇷", "韩国", "沪韩")) return "KR"; return "PX";
+            if (Has(n, "🇺🇲", "🇺🇸", "美国", "沪美", "美西", "美东", "United States")) return "US"; if (Has(n, "🇰🇷", "韩国", "沪韩", "Korea")) return "KR";
+            if (Has(n, "🇬🇧", "英国", "United Kingdom", "London")) return "GB"; if (Has(n, "🇩🇪", "德国", "Germany")) return "DE";
+            if (Has(n, "🇫🇷", "法国", "France")) return "FR"; if (Has(n, "🇳🇱", "荷兰", "Netherlands")) return "NL";
+            if (Has(n, "🇨🇦", "加拿大", "Canada")) return "CA"; if (Has(n, "🇦🇺", "澳大利亚", "澳洲", "Australia")) return "AU";
+            if (Has(n, "🇮🇳", "印度", "India")) return "IN"; if (Has(n, "🇷🇺", "俄罗斯", "Russia")) return "RU";
+            if (Has(n, "🇹🇷", "土耳其", "Turkey")) return "TR"; if (Has(n, "🇹🇭", "泰国", "Thailand")) return "TH";
+            if (Has(n, "🇲🇾", "马来西亚", "Malaysia")) return "MY"; if (Has(n, "🇵🇭", "菲律宾", "Philippines")) return "PH";
+            if (Has(n, "🇮🇩", "印度尼西亚", "印尼", "Indonesia")) return "ID"; if (Has(n, "🇻🇳", "越南", "Vietnam")) return "VN";
+            if (Has(n, "🇧🇷", "巴西", "Brazil")) return "BR"; if (Has(n, "🇦🇪", "阿联酋", "UAE", "Dubai")) return "AE";
+            if (Has(n, "🇸🇦", "沙特", "Saudi")) return "SA"; if (Has(n, "🇨🇭", "瑞士", "Switzerland")) return "CH";
+            if (Has(n, "🇸🇪", "瑞典", "Sweden")) return "SE"; if (Has(n, "🇳🇴", "挪威", "Norway")) return "NO";
+            if (Has(n, "🇫🇮", "芬兰", "Finland")) return "FI"; if (Has(n, "🇮🇹", "意大利", "Italy")) return "IT";
+            if (Has(n, "🇪🇸", "西班牙", "Spain")) return "ES"; if (Has(n, "🇵🇹", "葡萄牙", "Portugal")) return "PT";
+            if (Has(n, "🇵🇱", "波兰", "Poland")) return "PL"; return "PX";
         }
 
         private static bool Has(string v, params string[] x) { return x.Any(s => v.IndexOf(s, StringComparison.OrdinalIgnoreCase) >= 0); }
@@ -316,7 +336,7 @@ namespace ClashLeftWidget
                 return;
             }
             if (code == "HK") { using (var b = new SolidBrush(Color.FromArgb(222, 35, 50))) g.FillRectangle(b, r); DrawHongKongFlower(g, r); }
-            else if (code == "TW") { using (var red = new SolidBrush(Color.FromArgb(220, 30, 45))) g.FillRectangle(red, r); using (var blue = new SolidBrush(Color.Navy)) g.FillRectangle(blue, r.X, r.Y, r.Width / 2, r.Height / 2); using (var white = new SolidBrush(Color.White)) g.FillEllipse(white, r.X + 5, r.Y + 3, 5, 5); }
+            else if (code == "TW" || code == "CN") { using (var red = new SolidBrush(Color.FromArgb(222, 41, 16))) g.FillRectangle(red, r); using (var yellow = new SolidBrush(Color.FromArgb(255, 222, 0))) g.FillEllipse(yellow, r.X + 5, r.Y + 5, 7, 7); }
             else if (code == "SG") { g.FillRectangle(Brushes.White, r); g.FillRectangle(Brushes.Red, r.X, r.Y, r.Width, r.Height / 2); }
             else if (code == "JP") { g.FillRectangle(Brushes.White, r); using (var b = new SolidBrush(Color.Crimson)) g.FillEllipse(b, r.X + 10, r.Y + 5, 12, 12); }
             else if (code == "US") { g.FillRectangle(Brushes.White, r); using (var red = new SolidBrush(Color.Firebrick)) for (int i = 0; i < 4; i++) g.FillRectangle(red, r.X, r.Y + i * 6, r.Width, 3); using (var blue = new SolidBrush(Color.Navy)) g.FillRectangle(blue, r.X, r.Y, 14, 11); }
@@ -331,7 +351,8 @@ namespace ClashLeftWidget
             Image cached;
             if (FlagCache.TryGetValue(code, out cached)) return cached;
             string key = code.ToLowerInvariant();
-            if (key != "hk" && key != "tw" && key != "sg" && key != "jp" && key != "us" && key != "kr") return null;
+            if (key == "tw") key = "cn";
+            if (!Regex.IsMatch(key, "^[a-z]{2}$")) return null;
             using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("flags." + key + ".png"))
             {
                 if (stream == null) return null;
@@ -415,17 +436,20 @@ namespace ClashLeftWidget
     {
         private readonly TrackBar offset = new TrackBar();
         private readonly Label offsetValue = new Label();
+        private readonly TrackBar verticalOffset = new TrackBar();
+        private readonly Label verticalOffsetValue = new Label();
         private readonly NumericUpDown refresh = new NumericUpDown();
         private readonly CheckBox startup = new CheckBox();
         private readonly ComboBox language = new ComboBox();
-        private readonly Action<int> previewPosition;
+        private readonly Action<int, int> previewPosition;
 
         public int HorizontalOffset { get { return offset.Value; } }
+        public int VerticalOffset { get { return verticalOffset.Value; } }
         public int RefreshSeconds { get { return Decimal.ToInt32(refresh.Value); } }
         public bool StartWithWindows { get { return startup.Checked; } }
         public string Language { get { return language.SelectedIndex == 1 ? "en" : "zh"; } }
 
-        public SettingsForm(int horizontalOffset, int refreshSeconds, bool startWithWindows, string currentLanguage, Action<int> positionPreview)
+        public SettingsForm(int horizontalOffset, int currentVerticalOffset, int refreshSeconds, bool startWithWindows, string currentLanguage, Action<int, int> positionPreview)
         {
             previewPosition = positionPreview;
             bool en = currentLanguage == "en";
@@ -435,36 +459,44 @@ namespace ClashLeftWidget
             MinimizeBox = false;
             ShowInTaskbar = false;
             StartPosition = FormStartPosition.CenterScreen;
-            ClientSize = new Size(460, 300);
+            ClientSize = new Size(480, 410);
             Font = new Font("Microsoft YaHei UI", 9f);
+            AutoScaleMode = AutoScaleMode.Dpi;
 
             var title = new Label { Text = en ? "Display settings" : "显示设置", Font = new Font("Microsoft YaHei UI", 12f, FontStyle.Bold), AutoSize = true, Location = new Point(22, 18) };
             var positionLabel = new Label { Text = en ? "Horizontal position (live preview)" : "水平位置（拖动时实时预览）", AutoSize = true, Location = new Point(24, 60) };
             offset.Minimum = -500; offset.Maximum = 500; offset.SmallChange = 5; offset.LargeChange = 25; offset.TickFrequency = 50;
-            offset.Value = Math.Max(-500, Math.Min(500, horizontalOffset)); offset.Location = new Point(20, 82); offset.Width = 370;
-            offsetValue.AutoSize = true; offsetValue.Location = new Point(396, 88); offsetValue.Text = FormatOffset(offset.Value);
-            offset.Scroll += delegate { offsetValue.Text = FormatOffset(offset.Value); if (previewPosition != null) previewPosition(offset.Value); };
+            offset.Value = Math.Max(-500, Math.Min(500, horizontalOffset)); offset.Location = new Point(20, 82); offset.Width = 390;
+            offsetValue.AutoSize = true; offsetValue.Location = new Point(416, 88); offsetValue.Text = FormatOffset(offset.Value);
+            offset.Scroll += delegate { offsetValue.Text = FormatOffset(offset.Value); Preview(); };
 
-            var refreshLabel = new Label { Text = en ? "Refresh interval" : "状态刷新间隔", AutoSize = true, Location = new Point(24, 145) };
+            var verticalLabel = new Label { Text = en ? "Vertical position (live preview)" : "垂直位置（拖动时实时预览）", AutoSize = true, Location = new Point(24, 145) };
+            verticalOffset.Minimum = -30; verticalOffset.Maximum = 30; verticalOffset.SmallChange = 1; verticalOffset.LargeChange = 5; verticalOffset.TickFrequency = 5;
+            verticalOffset.Value = Math.Max(-30, Math.Min(30, currentVerticalOffset)); verticalOffset.Location = new Point(20, 167); verticalOffset.Width = 390;
+            verticalOffsetValue.AutoSize = true; verticalOffsetValue.Location = new Point(416, 173); verticalOffsetValue.Text = FormatOffset(verticalOffset.Value);
+            verticalOffset.Scroll += delegate { verticalOffsetValue.Text = FormatOffset(verticalOffset.Value); Preview(); };
+
+            var refreshLabel = new Label { Text = en ? "Refresh interval" : "状态刷新间隔", AutoSize = true, Location = new Point(24, 235) };
             refresh.Minimum = 2; refresh.Maximum = 60; refresh.Value = Math.Max(2, Math.Min(60, refreshSeconds));
-            refresh.Location = new Point(160, 141); refresh.Width = 105;
-            var seconds = new Label { Text = en ? "seconds" : "秒", AutoSize = true, ForeColor = Color.DimGray, Location = new Point(273, 145) };
+            refresh.Location = new Point(170, 231); refresh.Width = 105;
+            var seconds = new Label { Text = en ? "seconds" : "秒", AutoSize = true, ForeColor = Color.DimGray, Location = new Point(283, 235) };
 
-            var languageLabel = new Label { Text = en ? "Language" : "界面语言", AutoSize = true, Location = new Point(24, 181) };
+            var languageLabel = new Label { Text = en ? "Language" : "界面语言", AutoSize = true, Location = new Point(24, 276) };
             language.DropDownStyle = ComboBoxStyle.DropDownList; language.Items.AddRange(new object[] { "中文", "English" });
-            language.SelectedIndex = currentLanguage == "en" ? 1 : 0; language.Location = new Point(160, 177); language.Width = 105;
+            language.SelectedIndex = currentLanguage == "en" ? 1 : 0; language.Location = new Point(170, 272); language.Width = 105;
 
             startup.Text = en ? "Start with Windows (hide while Clash is not running)" : "随 Windows 启动（Clash 未运行时自动隐藏）";
-            startup.AutoSize = true; startup.Checked = startWithWindows; startup.Location = new Point(24, 218);
+            startup.AutoSize = true; startup.Checked = startWithWindows; startup.Location = new Point(24, 315);
 
-            var defaults = new Button { Text = en ? "Reset position" : "恢复默认位置", AutoSize = true, Location = new Point(24, 255) };
-            defaults.Click += delegate { offset.Value = 0; offsetValue.Text = FormatOffset(0); if (previewPosition != null) previewPosition(0); };
-            var cancel = new Button { Text = en ? "Cancel" : "取消", DialogResult = DialogResult.Cancel, Size = new Size(75, 28), Location = new Point(292, 253) };
-            var save = new Button { Text = en ? "Save" : "保存", DialogResult = DialogResult.OK, Size = new Size(75, 28), Location = new Point(373, 253) };
+            var defaults = new Button { Text = en ? "Reset position" : "恢复默认位置", AutoSize = true, Location = new Point(24, 360) };
+            defaults.Click += delegate { offset.Value = 0; verticalOffset.Value = 0; offsetValue.Text = FormatOffset(0); verticalOffsetValue.Text = FormatOffset(0); Preview(); };
+            var cancel = new Button { Text = en ? "Cancel" : "取消", DialogResult = DialogResult.Cancel, Size = new Size(75, 28), Location = new Point(312, 358) };
+            var save = new Button { Text = en ? "Save" : "保存", DialogResult = DialogResult.OK, Size = new Size(75, 28), Location = new Point(393, 358) };
             AcceptButton = save; CancelButton = cancel;
-            Controls.AddRange(new Control[] { title, positionLabel, offset, offsetValue, refreshLabel, refresh, seconds, languageLabel, language, startup, defaults, cancel, save });
+            Controls.AddRange(new Control[] { title, positionLabel, offset, offsetValue, verticalLabel, verticalOffset, verticalOffsetValue, refreshLabel, refresh, seconds, languageLabel, language, startup, defaults, cancel, save });
         }
 
+        private void Preview() { if (previewPosition != null) previewPosition(offset.Value, verticalOffset.Value); }
         private static string FormatOffset(int value) { return (value > 0 ? "+" : "") + value + " px"; }
     }
 }

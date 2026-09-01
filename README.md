@@ -21,8 +21,8 @@ The widget does not open a network port, upload telemetry, read subscription URL
 - Starts with Windows, stays hidden while `clash-verge.exe` is not running, and appears automatically with Clash.
 - Detects LiteMonitor and places itself to its right.
 - Reasserts its taskbar overlay layer after maximized/full-screen window changes without taking keyboard focus.
-- Includes a settings window with live horizontal-position preview, refresh interval, startup, reset, and Chinese/English language selection.
-- Supports Hong Kong, Taiwan, Singapore, Japan, United States, and South Korea flags.
+- Includes a spacious, DPI-aware settings window with live horizontal/vertical position preview, refresh interval, startup, reset, and Chinese/English language selection.
+- Recognizes flags for more than 30 common VPN locations across Asia, Europe, the Americas, and Oceania.
 
 ## Download
 
@@ -48,7 +48,7 @@ The executable is written to `dist/ClashLeftWidget.exe`.
 
 ## Configuration
 
-Right-click the widget and select **设置… / Settings…**. Drag the position slider to preview movement immediately. Cancel restores the position from before the dialog was opened; Save keeps it. The current automatic position (to the right of LiteMonitor when detected) is offset `0` and remains the default. The interface can be switched between Chinese and English. Settings are saved per Windows user.
+Right-click the widget and select **设置… / Settings…**. Drag either position slider to preview movement immediately. Cancel restores the position from before the dialog was opened; Save keeps it. The current automatic position (to the right of LiteMonitor when detected) is offset `0` on both axes and remains the default. The interface can be switched between Chinese and English. Settings are saved per Windows user.
 
 The Mihomo pipe name (`verge-mihomo`), root policy group (`🚀 节点选择`), and latency thresholds remain source-level settings for now.
 
@@ -66,7 +66,7 @@ The current process-following mode starts the small watcher at Windows logon, hi
 
 ## Flag assets
 
-Flag images are derived from [lipis/flag-icons](https://github.com/lipis/flag-icons), licensed under MIT. See [`third_party/flag-icons-LICENSE.txt`](third_party/flag-icons-LICENSE.txt).
+Flag images are derived from MIT-licensed [country-flag-icons](https://github.com/csmoore/country-flag-icons) and its upstream flag icon set. See [`third_party/country-flag-icons-NOTICE.txt`](third_party/country-flag-icons-NOTICE.txt) and [`third_party/flag-icons-LICENSE.txt`](third_party/flag-icons-LICENSE.txt).
 
 ## Privacy
 

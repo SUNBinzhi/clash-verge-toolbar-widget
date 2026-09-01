@@ -1,4 +1,4 @@
-# Clash Left Widget
+# Clash Verge Toolbar Widget
 
 A lightweight Windows taskbar-side status widget for **Clash Verge Rev / Mihomo**.
 

@@ -459,7 +459,7 @@ namespace ClashLeftWidget
             MinimizeBox = false;
             ShowInTaskbar = false;
             StartPosition = FormStartPosition.CenterScreen;
-            ClientSize = new Size(480, 410);
+            ClientSize = new Size(480, 445);
             Font = new Font("Microsoft YaHei UI", 9f);
             AutoScaleMode = AutoScaleMode.Dpi;
 
@@ -470,28 +470,28 @@ namespace ClashLeftWidget
             offsetValue.AutoSize = true; offsetValue.Location = new Point(416, 88); offsetValue.Text = FormatOffset(offset.Value);
             offset.Scroll += delegate { offsetValue.Text = FormatOffset(offset.Value); Preview(); };
 
-            var verticalLabel = new Label { Text = en ? "Vertical position (live preview)" : "垂直位置（拖动时实时预览）", AutoSize = true, Location = new Point(24, 145) };
+            var verticalLabel = new Label { Text = en ? "Vertical position (live preview)" : "垂直位置（拖动时实时预览）", AutoSize = true, Location = new Point(24, 180) };
             verticalOffset.Minimum = -30; verticalOffset.Maximum = 30; verticalOffset.SmallChange = 1; verticalOffset.LargeChange = 5; verticalOffset.TickFrequency = 5;
-            verticalOffset.Value = Math.Max(-30, Math.Min(30, currentVerticalOffset)); verticalOffset.Location = new Point(20, 167); verticalOffset.Width = 390;
-            verticalOffsetValue.AutoSize = true; verticalOffsetValue.Location = new Point(416, 173); verticalOffsetValue.Text = FormatOffset(verticalOffset.Value);
+            verticalOffset.Value = Math.Max(-30, Math.Min(30, currentVerticalOffset)); verticalOffset.Location = new Point(20, 202); verticalOffset.Width = 390;
+            verticalOffsetValue.AutoSize = true; verticalOffsetValue.Location = new Point(416, 208); verticalOffsetValue.Text = FormatOffset(verticalOffset.Value);
             verticalOffset.Scroll += delegate { verticalOffsetValue.Text = FormatOffset(verticalOffset.Value); Preview(); };
 
-            var refreshLabel = new Label { Text = en ? "Refresh interval" : "状态刷新间隔", AutoSize = true, Location = new Point(24, 235) };
+            var refreshLabel = new Label { Text = en ? "Refresh interval" : "状态刷新间隔", AutoSize = true, Location = new Point(24, 270) };
             refresh.Minimum = 2; refresh.Maximum = 60; refresh.Value = Math.Max(2, Math.Min(60, refreshSeconds));
-            refresh.Location = new Point(170, 231); refresh.Width = 105;
-            var seconds = new Label { Text = en ? "seconds" : "秒", AutoSize = true, ForeColor = Color.DimGray, Location = new Point(283, 235) };
+            refresh.Location = new Point(170, 266); refresh.Width = 105;
+            var seconds = new Label { Text = en ? "seconds" : "秒", AutoSize = true, ForeColor = Color.DimGray, Location = new Point(283, 270) };
 
-            var languageLabel = new Label { Text = en ? "Language" : "界面语言", AutoSize = true, Location = new Point(24, 276) };
+            var languageLabel = new Label { Text = en ? "Language" : "界面语言", AutoSize = true, Location = new Point(24, 311) };
             language.DropDownStyle = ComboBoxStyle.DropDownList; language.Items.AddRange(new object[] { "中文", "English" });
-            language.SelectedIndex = currentLanguage == "en" ? 1 : 0; language.Location = new Point(170, 272); language.Width = 105;
+            language.SelectedIndex = currentLanguage == "en" ? 1 : 0; language.Location = new Point(170, 307); language.Width = 105;
 
             startup.Text = en ? "Start with Windows (hide while Clash is not running)" : "随 Windows 启动（Clash 未运行时自动隐藏）";
-            startup.AutoSize = true; startup.Checked = startWithWindows; startup.Location = new Point(24, 315);
+            startup.AutoSize = true; startup.Checked = startWithWindows; startup.Location = new Point(24, 350);
 
-            var defaults = new Button { Text = en ? "Reset position" : "恢复默认位置", AutoSize = true, Location = new Point(24, 360) };
+            var defaults = new Button { Text = en ? "Reset position" : "恢复默认位置", AutoSize = true, Location = new Point(24, 395) };
             defaults.Click += delegate { offset.Value = 0; verticalOffset.Value = 0; offsetValue.Text = FormatOffset(0); verticalOffsetValue.Text = FormatOffset(0); Preview(); };
-            var cancel = new Button { Text = en ? "Cancel" : "取消", DialogResult = DialogResult.Cancel, Size = new Size(75, 28), Location = new Point(312, 358) };
-            var save = new Button { Text = en ? "Save" : "保存", DialogResult = DialogResult.OK, Size = new Size(75, 28), Location = new Point(393, 358) };
+            var cancel = new Button { Text = en ? "Cancel" : "取消", DialogResult = DialogResult.Cancel, Size = new Size(75, 28), Location = new Point(312, 393) };
+            var save = new Button { Text = en ? "Save" : "保存", DialogResult = DialogResult.OK, Size = new Size(75, 28), Location = new Point(393, 393) };
             AcceptButton = save; CancelButton = cancel;
             Controls.AddRange(new Control[] { title, positionLabel, offset, offsetValue, verticalLabel, verticalOffset, verticalOffsetValue, refreshLabel, refresh, seconds, languageLabel, language, startup, defaults, cancel, save });
         }

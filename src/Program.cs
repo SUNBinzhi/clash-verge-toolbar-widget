@@ -55,6 +55,7 @@ namespace ClashLeftWidget
         private string detail = "Clash 未运行";
         private Color statusColor = Color.FromArgb(125, 132, 145);
         private bool polling;
+        private bool settingsOpen;
         private int horizontalOffset;
         private int verticalOffset;
         private int refreshSeconds;
@@ -124,8 +125,11 @@ namespace ClashLeftWidget
             if (IsClashRunning())
             {
                 if (!Visible) Show();
-                PlaceOnTaskbar();
-                KeepAboveWindows();
+                if (!settingsOpen)
+                {
+                    PlaceOnTaskbar();
+                    KeepAboveWindows();
+                }
                 if (shortNode == "Clash 离线" || shortNode == "离线")
                 {
                     Task ignored = PollAsync();
@@ -248,8 +252,10 @@ namespace ClashLeftWidget
             using (var dialog = new SettingsForm(horizontalOffset, verticalOffset, refreshSeconds, IsStartupEnabled(), language,
                 delegate(int horizontal, int vertical) { horizontalOffset = horizontal; verticalOffset = vertical; PlaceOnTaskbar(); KeepAboveWindows(); }))
             {
+                settingsOpen = true;
                 if (dialog.ShowDialog(this) != DialogResult.OK)
                 {
+                    settingsOpen = false;
                     horizontalOffset = originalHorizontalOffset;
                     verticalOffset = originalVerticalOffset;
                     PlaceOnTaskbar(); KeepAboveWindows();
@@ -267,6 +273,7 @@ namespace ClashLeftWidget
                 WriteTextSetting("Language", language);
                 startupMenuItem.Checked = dialog.StartWithWindows;
                 ApplyLanguage();
+                settingsOpen = false;
                 PlaceOnTaskbar();
                 KeepAboveWindows();
             }
@@ -551,7 +558,7 @@ namespace ClashLeftWidget
             secondsLabel.Location = new Point(308, 32); secondsLabel.Size = new Size(90, 26); secondsLabel.ForeColor = Color.DimGray;
 
             languageLabel.Location = new Point(18, 70); languageLabel.Size = new Size(190, 26);
-            language.DropDownStyle = ComboBoxStyle.DropDownList; language.Items.AddRange(new object[] { "中文", "English" });
+            language.DropDownStyle = ComboBoxStyle.DropDownList; language.Items.AddRange(new object[] { "中文 / Chinese", "English / 英文" });
             language.Location = new Point(210, 67); language.Size = new Size(140, 28);
 
             startup.AutoSize = false; startup.Checked = startWithWindows; startup.Location = new Point(18, 101); startup.Size = new Size(505, 26);
@@ -583,7 +590,7 @@ namespace ClashLeftWidget
             generalGroup.Text = en ? " General " : " 常规 ";
             refreshLabel.Text = en ? "Status refresh interval" : "状态刷新间隔";
             secondsLabel.Text = en ? "seconds" : "秒";
-            languageLabel.Text = en ? "Interface language" : "界面语言";
+            languageLabel.Text = "语言 / Language";
             startup.Text = en ? "Start with Windows · hide automatically while Clash is not running" : "随 Windows 启动 · Clash 未运行时自动隐藏";
             defaults.Text = en ? "Reset position" : "恢复默认位置";
             cancel.Text = en ? "Cancel" : "取消";

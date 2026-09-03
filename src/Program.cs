@@ -59,6 +59,9 @@ namespace ClashLeftWidget
         private bool settingsOpen;
         private int horizontalOffset;
         private int verticalOffset;
+        private int flagOffsetY;
+        private int nodeOffsetY;
+        private int delayOffsetY;
         private int refreshSeconds;
         private string language;
         private DateTime menuOpenedAt;
@@ -78,6 +81,9 @@ namespace ClashLeftWidget
             Text = "Clash 节点状态";
             horizontalOffset = ReadSetting("HorizontalOffset", 0, -1000, 1000);
             verticalOffset = ReadSetting("VerticalOffset", 0, -100, 100);
+            flagOffsetY = ReadSetting("FlagOffsetY", 0, -12, 12);
+            nodeOffsetY = ReadSetting("NodeOffsetY", 0, -12, 12);
+            delayOffsetY = ReadSetting("DelayOffsetY", 0, -12, 12);
             refreshSeconds = ReadSetting("RefreshSeconds", 5, 2, 60);
             language = ReadTextSetting("Language", "zh") == "en" ? "en" : "zh";
 
@@ -196,16 +202,16 @@ namespace ClashLeftWidget
             base.OnPaint(e);
             var g = e.Graphics;
             g.SmoothingMode = SmoothingMode.AntiAlias;
-            DrawFlag(g, region, new Rectangle(2, 6, 42, 28));
-            using (var dot = new SolidBrush(statusColor)) g.FillEllipse(dot, 50, 16, 8, 8);
+            DrawFlag(g, region, new Rectangle(2, 6 + flagOffsetY, 42, 28));
+            using (var dot = new SolidBrush(statusColor)) g.FillEllipse(dot, 50, 16 + nodeOffsetY, 8, 8);
             using (var primary = new SolidBrush(Color.FromArgb(242, 244, 248)))
             using (var delayBrush = new SolidBrush(statusColor))
             using (var mainFont = new Font("Microsoft YaHei UI", 9f, FontStyle.Bold, GraphicsUnit.Point))
             using (var delayFont = new Font("Segoe UI Semibold", 9f, FontStyle.Bold, GraphicsUnit.Point))
             {
-                DrawShadowText(g, shortNode, mainFont, primary, new RectangleF(64, 5, 65, 27), CenterLeft());
+                DrawShadowText(g, shortNode, mainFont, primary, new RectangleF(64, 5 + nodeOffsetY, 65, 27), CenterLeft());
                 DrawShadowText(g, delay + (delay == "--" ? "" : " ms"), delayFont, delayBrush,
-                    new RectangleF(127, 5, 69, 27), CenterLeft());
+                    new RectangleF(127, 5 + delayOffsetY, 69, 27), CenterLeft());
             }
         }
 
@@ -277,8 +283,17 @@ namespace ClashLeftWidget
         {
             int originalHorizontalOffset = horizontalOffset;
             int originalVerticalOffset = verticalOffset;
-            using (var dialog = new SettingsForm(horizontalOffset, verticalOffset, refreshSeconds, IsStartupEnabled(), language,
-                delegate(int horizontal, int vertical) { horizontalOffset = horizontal; verticalOffset = vertical; PlaceOnTaskbar(); KeepAboveWindows(); }))
+            int originalFlagOffsetY = flagOffsetY;
+            int originalNodeOffsetY = nodeOffsetY;
+            int originalDelayOffsetY = delayOffsetY;
+            using (var dialog = new SettingsForm(horizontalOffset, verticalOffset, flagOffsetY, nodeOffsetY, delayOffsetY,
+                refreshSeconds, IsStartupEnabled(), language,
+                delegate(int horizontal, int vertical, int flagY, int nodeY, int delayY)
+                {
+                    horizontalOffset = horizontal; verticalOffset = vertical;
+                    flagOffsetY = flagY; nodeOffsetY = nodeY; delayOffsetY = delayY;
+                    PlaceOnTaskbar(); KeepAboveWindows(); Invalidate();
+                }))
             {
                 settingsOpen = true;
                 if (dialog.ShowDialog(this) != DialogResult.OK)
@@ -286,17 +301,26 @@ namespace ClashLeftWidget
                     settingsOpen = false;
                     horizontalOffset = originalHorizontalOffset;
                     verticalOffset = originalVerticalOffset;
+                    flagOffsetY = originalFlagOffsetY;
+                    nodeOffsetY = originalNodeOffsetY;
+                    delayOffsetY = originalDelayOffsetY;
                     PlaceOnTaskbar(); KeepAboveWindows();
                     return;
                 }
                 horizontalOffset = dialog.HorizontalOffset;
                 verticalOffset = dialog.VerticalOffset;
+                flagOffsetY = dialog.FlagOffsetY;
+                nodeOffsetY = dialog.NodeOffsetY;
+                delayOffsetY = dialog.DelayOffsetY;
                 refreshSeconds = dialog.RefreshSeconds;
                 language = dialog.Language;
                 refreshTimer.Interval = refreshSeconds * 1000;
                 SetStartup(dialog.StartWithWindows);
                 WriteSetting("HorizontalOffset", horizontalOffset);
                 WriteSetting("VerticalOffset", verticalOffset);
+                WriteSetting("FlagOffsetY", flagOffsetY);
+                WriteSetting("NodeOffsetY", nodeOffsetY);
+                WriteSetting("DelayOffsetY", delayOffsetY);
                 WriteSetting("RefreshSeconds", refreshSeconds);
                 WriteTextSetting("Language", language);
                 startupMenuItem.Checked = dialog.StartWithWindows;
@@ -529,15 +553,25 @@ namespace ClashLeftWidget
         private readonly Label offsetValue = new Label();
         private readonly TrackBar verticalOffset = new TrackBar();
         private readonly Label verticalOffsetValue = new Label();
+        private readonly TrackBar flagOffset = new TrackBar();
+        private readonly Label flagOffsetValue = new Label();
+        private readonly TrackBar nodeOffset = new TrackBar();
+        private readonly Label nodeOffsetValue = new Label();
+        private readonly TrackBar delayOffset = new TrackBar();
+        private readonly Label delayOffsetValue = new Label();
         private readonly NumericUpDown refresh = new NumericUpDown();
         private readonly CheckBox startup = new CheckBox();
         private readonly Label startupHint = new Label();
         private readonly ComboBox language = new ComboBox();
-        private readonly Action<int, int> previewPosition;
+        private readonly Action<int, int, int, int, int> previewPosition;
         private readonly Label title = new Label();
         private readonly GroupBox positionGroup = new GroupBox();
         private readonly Label horizontalLabel = new Label();
         private readonly Label verticalLabel = new Label();
+        private readonly GroupBox alignmentGroup = new GroupBox();
+        private readonly Label flagLabel = new Label();
+        private readonly Label nodeLabel = new Label();
+        private readonly Label delayLabel = new Label();
         private readonly GroupBox generalGroup = new GroupBox();
         private readonly Label refreshLabel = new Label();
         private readonly Label secondsLabel = new Label();
@@ -548,11 +582,16 @@ namespace ClashLeftWidget
 
         public int HorizontalOffset { get { return offset.Value; } }
         public int VerticalOffset { get { return verticalOffset.Value; } }
+        public int FlagOffsetY { get { return flagOffset.Value; } }
+        public int NodeOffsetY { get { return nodeOffset.Value; } }
+        public int DelayOffsetY { get { return delayOffset.Value; } }
         public int RefreshSeconds { get { return Decimal.ToInt32(refresh.Value); } }
         public bool StartWithWindows { get { return startup.Checked; } }
         public string Language { get { return language.SelectedIndex == 1 ? "en" : "zh"; } }
 
-        public SettingsForm(int horizontalOffset, int currentVerticalOffset, int refreshSeconds, bool startWithWindows, string currentLanguage, Action<int, int> positionPreview)
+        public SettingsForm(int horizontalOffset, int currentVerticalOffset, int currentFlagOffset, int currentNodeOffset,
+            int currentDelayOffset, int refreshSeconds, bool startWithWindows, string currentLanguage,
+            Action<int, int, int, int, int> positionPreview)
         {
             previewPosition = positionPreview;
             FormBorderStyle = FormBorderStyle.FixedDialog;
@@ -560,8 +599,8 @@ namespace ClashLeftWidget
             MinimizeBox = false;
             ShowInTaskbar = false;
             StartPosition = FormStartPosition.CenterScreen;
-            ClientSize = new Size(580, 550);
-            MinimumSize = new Size(596, 589);
+            ClientSize = new Size(580, 800);
+            MinimumSize = new Size(596, 839);
             Font = new Font("Microsoft YaHei UI", 9.5f);
             AutoScaleMode = AutoScaleMode.Dpi;
             BackColor = Color.FromArgb(246, 248, 252);
@@ -585,7 +624,14 @@ namespace ClashLeftWidget
             verticalOffset.Scroll += delegate { verticalOffsetValue.Text = FormatOffset(verticalOffset.Value); Preview(); };
             positionGroup.Controls.AddRange(new Control[] { horizontalLabel, offset, offsetValue, verticalLabel, verticalOffset, verticalOffsetValue });
 
-            generalGroup.Location = new Point(20, 310); generalGroup.Size = new Size(540, 165);
+            alignmentGroup.Location = new Point(20, 310); alignmentGroup.Size = new Size(540, 235);
+            alignmentGroup.BackColor = Color.White; alignmentGroup.ForeColor = Color.FromArgb(55, 68, 90);
+            SetupElementSlider(flagLabel, flagOffset, flagOffsetValue, currentFlagOffset, 28);
+            SetupElementSlider(nodeLabel, nodeOffset, nodeOffsetValue, currentNodeOffset, 93);
+            SetupElementSlider(delayLabel, delayOffset, delayOffsetValue, currentDelayOffset, 158);
+            alignmentGroup.Controls.AddRange(new Control[] { flagLabel, flagOffset, flagOffsetValue, nodeLabel, nodeOffset, nodeOffsetValue, delayLabel, delayOffset, delayOffsetValue });
+
+            generalGroup.Location = new Point(20, 560); generalGroup.Size = new Size(540, 165);
             generalGroup.BackColor = Color.White; generalGroup.ForeColor = Color.FromArgb(55, 68, 90);
             refreshLabel.Location = new Point(18, 32); refreshLabel.Size = new Size(190, 26);
             refresh.Minimum = 2; refresh.Maximum = 60; refresh.Value = Math.Max(2, Math.Min(60, refreshSeconds));
@@ -600,19 +646,24 @@ namespace ClashLeftWidget
             startupHint.Location = new Point(42, 128); startupHint.Size = new Size(480, 24); startupHint.ForeColor = Color.FromArgb(105, 115, 132);
             generalGroup.Controls.AddRange(new Control[] { refreshLabel, refresh, secondsLabel, languageLabel, language, startup, startupHint });
 
-            StyleButton(defaults, false); defaults.Location = new Point(20, 496); defaults.Size = new Size(145, 36);
-            defaults.Click += delegate { offset.Value = 0; verticalOffset.Value = 0; offsetValue.Text = FormatOffset(0); verticalOffsetValue.Text = FormatOffset(0); Preview(); };
-            StyleButton(cancel, false); cancel.DialogResult = DialogResult.Cancel; cancel.Location = new Point(382, 496); cancel.Size = new Size(82, 36);
-            StyleButton(save, true); save.DialogResult = DialogResult.OK; save.Location = new Point(474, 496); save.Size = new Size(86, 36);
+            StyleButton(defaults, false); defaults.Location = new Point(20, 746); defaults.Size = new Size(145, 36);
+            defaults.Click += delegate
+            {
+                offset.Value = 0; verticalOffset.Value = 0; flagOffset.Value = 0; nodeOffset.Value = 0; delayOffset.Value = 0;
+                offsetValue.Text = FormatOffset(0); verticalOffsetValue.Text = FormatOffset(0);
+                flagOffsetValue.Text = FormatOffset(0); nodeOffsetValue.Text = FormatOffset(0); delayOffsetValue.Text = FormatOffset(0); Preview();
+            };
+            StyleButton(cancel, false); cancel.DialogResult = DialogResult.Cancel; cancel.Location = new Point(382, 746); cancel.Size = new Size(82, 36);
+            StyleButton(save, true); save.DialogResult = DialogResult.OK; save.Location = new Point(474, 746); save.Size = new Size(86, 36);
             AcceptButton = save; CancelButton = cancel;
-            Controls.AddRange(new Control[] { title, positionGroup, generalGroup, defaults, cancel, save });
+            Controls.AddRange(new Control[] { title, positionGroup, alignmentGroup, generalGroup, defaults, cancel, save });
 
             language.SelectedIndex = currentLanguage == "en" ? 1 : 0;
             language.SelectedIndexChanged += delegate { ApplyLanguage(); };
             ApplyLanguage();
         }
 
-        private void Preview() { if (previewPosition != null) previewPosition(offset.Value, verticalOffset.Value); }
+        private void Preview() { if (previewPosition != null) previewPosition(offset.Value, verticalOffset.Value, flagOffset.Value, nodeOffset.Value, delayOffset.Value); }
         private static string FormatOffset(int value) { return (value > 0 ? "+" : "") + value + " px"; }
 
         private void ApplyLanguage()
@@ -623,6 +674,10 @@ namespace ClashLeftWidget
             positionGroup.Text = en ? " Position " : " 位置 ";
             horizontalLabel.Text = en ? "Horizontal position · live preview" : "水平位置 · 实时预览";
             verticalLabel.Text = en ? "Vertical position · live preview" : "垂直位置 · 实时预览";
+            alignmentGroup.Text = en ? " Element alignment " : " 元素对齐 ";
+            flagLabel.Text = en ? "Flag vertical position" : "国旗上下位置";
+            nodeLabel.Text = en ? "Node name vertical position" : "节点缩写上下位置";
+            delayLabel.Text = en ? "Latency vertical position" : "延迟数字上下位置";
             generalGroup.Text = en ? " General " : " 常规 ";
             refreshLabel.Text = en ? "Status refresh interval" : "状态刷新间隔";
             secondsLabel.Text = en ? "seconds" : "秒";
@@ -642,6 +697,15 @@ namespace ClashLeftWidget
             button.BackColor = primary ? Color.FromArgb(32, 120, 245) : Color.White;
             button.ForeColor = primary ? Color.White : Color.FromArgb(45, 58, 78);
             button.Cursor = Cursors.Hand;
+        }
+
+        private void SetupElementSlider(Label label, TrackBar slider, Label valueLabel, int value, int y)
+        {
+            label.Location = new Point(18, y); label.Size = new Size(220, 24);
+            slider.Minimum = -12; slider.Maximum = 12; slider.SmallChange = 1; slider.LargeChange = 3; slider.TickFrequency = 2;
+            slider.Value = Math.Max(-12, Math.Min(12, value)); slider.Location = new Point(235, y - 5); slider.Size = new Size(225, 45);
+            valueLabel.Location = new Point(466, y + 1); valueLabel.Size = new Size(62, 24); valueLabel.TextAlign = ContentAlignment.MiddleRight; valueLabel.Text = FormatOffset(slider.Value);
+            slider.Scroll += delegate { valueLabel.Text = FormatOffset(slider.Value); Preview(); };
         }
     }
 }

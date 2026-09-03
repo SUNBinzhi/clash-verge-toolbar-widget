@@ -27,6 +27,7 @@ The widget does not open a network port, upload telemetry, read subscription URL
 - Reasserts its taskbar overlay layer after ordinary window changes without taking keyboard focus.
 - Automatically hides over true full-screen video or games and reappears after leaving full-screen, while remaining visible for ordinary maximized windows.
 - Includes a spacious, DPI-aware settings window with live horizontal/vertical position preview, refresh interval, startup, reset, and Chinese/English language selection.
+- Independently adjusts the flag, compact node name, and latency text vertically with live preview.
 - Recognizes flags for more than 30 common VPN locations across Asia, Europe, the Americas, and Oceania.
 
 ## Download

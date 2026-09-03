@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Reflection;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -124,6 +125,11 @@ namespace ClashLeftWidget
         {
             if (IsClashRunning())
             {
+                if (IsForegroundFullscreen())
+                {
+                    if (Visible) Hide();
+                    return;
+                }
                 if (!Visible) Show();
                 if (!settingsOpen)
                 {
@@ -147,6 +153,28 @@ namespace ClashLeftWidget
         private static bool IsClashRunning()
         {
             return Process.GetProcessesByName("clash-verge").Length > 0;
+        }
+
+        private bool IsForegroundFullscreen()
+        {
+            IntPtr foreground = GetForegroundWindow();
+            if (foreground == IntPtr.Zero || foreground == Handle) return false;
+            var className = new StringBuilder(128);
+            GetClassName(foreground, className, className.Capacity);
+            string windowClass = className.ToString();
+            if (windowClass == "Progman" || windowClass == "WorkerW" || windowClass == "Shell_TrayWnd") return false;
+            RECT windowRect;
+            if (DwmGetWindowAttribute(foreground, 9, out windowRect, Marshal.SizeOf(typeof(RECT))) != 0 &&
+                !GetWindowRect(foreground, out windowRect)) return false;
+            IntPtr monitor = MonitorFromWindow(foreground, 2);
+            if (monitor == IntPtr.Zero) return false;
+            var info = new MONITORINFO { cbSize = Marshal.SizeOf(typeof(MONITORINFO)) };
+            if (!GetMonitorInfo(monitor, ref info)) return false;
+            const int margin = 3;
+            return windowRect.left <= info.rcMonitor.left + margin &&
+                   windowRect.top <= info.rcMonitor.top + margin &&
+                   windowRect.right >= info.rcMonitor.right - margin &&
+                   windowRect.bottom >= info.rcMonitor.bottom - margin;
         }
 
         protected override CreateParams CreateParams
@@ -477,12 +505,18 @@ namespace ClashLeftWidget
 
         private sealed class Resolved { public string NodeName; public List<string> Chain; public int Delay; public bool Alive; }
         [StructLayout(LayoutKind.Sequential)] private struct RECT { public int left, top, right, bottom; }
+        [StructLayout(LayoutKind.Sequential)] private struct MONITORINFO { public int cbSize; public RECT rcMonitor; public RECT rcWork; public uint dwFlags; }
         [StructLayout(LayoutKind.Sequential)] private struct APPBARDATA { public int cbSize; public IntPtr hWnd; public uint uCallbackMessage; public uint uEdge; public RECT rc; public int lParam; }
         [DllImport("shell32.dll")] private static extern IntPtr SHAppBarMessage(uint message, ref APPBARDATA data);
         private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
         [DllImport("user32.dll")] private static extern bool EnumWindows(EnumWindowsProc callback, IntPtr lParam);
         [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
         [DllImport("user32.dll")] private static extern bool GetWindowRect(IntPtr hWnd, out RECT rect);
+        [DllImport("user32.dll")] private static extern IntPtr GetForegroundWindow();
+        [DllImport("user32.dll", CharSet = CharSet.Auto)] private static extern int GetClassName(IntPtr hWnd, StringBuilder className, int maxCount);
+        [DllImport("user32.dll")] private static extern IntPtr MonitorFromWindow(IntPtr hWnd, uint flags);
+        [DllImport("user32.dll", CharSet = CharSet.Auto)] private static extern bool GetMonitorInfo(IntPtr monitor, ref MONITORINFO info);
+        [DllImport("dwmapi.dll")] private static extern int DwmGetWindowAttribute(IntPtr hWnd, int attribute, out RECT value, int size);
         private const uint SWP_NOACTIVATE = 0x0010;
         private const uint SWP_SHOWWINDOW = 0x0040;
         [DllImport("user32.dll", SetLastError = true)] private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int x, int y, int cx, int cy, uint flags);

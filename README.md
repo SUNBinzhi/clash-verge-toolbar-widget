@@ -24,7 +24,8 @@ The widget does not open a network port, upload telemetry, read subscription URL
 - Gray: no recent result.
 - Starts through an 8-second delayed logon task for reliable Windows startup, stays hidden while `clash-verge.exe` is not running, and appears automatically with Clash.
 - Detects LiteMonitor and places itself to its right.
-- Reasserts its taskbar overlay layer after maximized/full-screen window changes without taking keyboard focus.
+- Reasserts its taskbar overlay layer after ordinary window changes without taking keyboard focus.
+- Automatically hides over true full-screen video or games and reappears after leaving full-screen, while remaining visible for ordinary maximized windows.
 - Includes a spacious, DPI-aware settings window with live horizontal/vertical position preview, refresh interval, startup, reset, and Chinese/English language selection.
 - Recognizes flags for more than 30 common VPN locations across Asia, Europe, the Americas, and Oceania.
 

@@ -226,7 +226,8 @@ namespace ClashLeftWidget
                 var root = serializer.DeserializeObject(json) as Dictionary<string, object>;
                 var proxies = root != null && root.ContainsKey("proxies") ? root["proxies"] as Dictionary<string, object> : null;
                 if (proxies == null) throw new InvalidDataException("未返回节点列表");
-                var result = Resolve(proxies, RootGroup);
+                string rootGroup = DiscoverRootGroup(proxies);
+                var result = Resolve(proxies, rootGroup);
                 region = RegionCode(result.NodeName);
                 shortNode = NodeAbbreviation(result.NodeName, region);
                 delay = result.Delay > 0 ? result.Delay.ToString() : "--";
@@ -358,14 +359,55 @@ namespace ClashLeftWidget
             return new Resolved { NodeName = name, Chain = chain, Delay = lastDelay, Alive = !item.ContainsKey("alive") || Convert.ToBoolean(item["alive"]) };
         }
 
+        private static string DiscoverRootGroup(Dictionary<string, object> proxies)
+        {
+            if (proxies.ContainsKey(RootGroup)) return RootGroup;
+            string[] preferred = { "节点选择", "代理选择", "Proxy", "PROXY", "代理" };
+            foreach (string name in preferred)
+                if (proxies.ContainsKey(name)) return name;
+
+            string bestName = null;
+            int bestScore = int.MinValue;
+            foreach (var pair in proxies)
+            {
+                var item = pair.Value as Dictionary<string, object>;
+                if (item == null || !item.ContainsKey("now")) continue;
+                bool hidden = item.ContainsKey("hidden") && Convert.ToBoolean(item["hidden"]);
+                if (hidden || pair.Key == "GLOBAL") continue;
+                string type = item.ContainsKey("type") ? Convert.ToString(item["type"]) : "";
+                int score = type.IndexOf("Selector", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                            type.Equals("select", StringComparison.OrdinalIgnoreCase) ? 5000 : 0;
+                if (Has(pair.Key, "节点", "代理", "proxy", "select")) score += 10000;
+                var all = item.ContainsKey("all") ? item["all"] as object[] : null;
+                if (all != null) score += Math.Min(all.Length, 1000);
+                if (score > bestScore) { bestScore = score; bestName = pair.Key; }
+            }
+            if (bestName == null) throw new InvalidDataException("找不到主代理组");
+            return bestName;
+        }
+
         private static string NodeAbbreviation(string name, string region)
         {
-            var m = Regex.Match(name, @"(?:香港|深港|广台|新坡|广新|日本|沪日|美国|沪美|韩国|沪韩)([A-Z]?\d{1,2})", RegexOptions.IgnoreCase);
+            const string places = @"香港|深港|台湾|广台|新加坡|新坡|广新|日本|沪日|韩国|沪韩|美国|沪美|加拿大|澳洲|澳大利亚|英国|德国|法国|荷兰|印度|俄罗斯|菲律宾|迪拜|巴西|智利|墨西哥";
+            var m = Regex.Match(name, "(?:" + places + @")(?:集群)?[-_ ]*([A-Z]?\d{1,3})", RegexOptions.IgnoreCase);
+            if (!m.Success) m = Regex.Match(name, @"(\d{1,3})(?=" + places + ")", RegexOptions.IgnoreCase);
+            if (!m.Success)
+            {
+                string withoutFlag = Regex.Replace(name, @"^[\uD800-\uDBFF][\uDC00-\uDFFF][\uD800-\uDBFF][\uDC00-\uDFFF]\s*", "");
+                m = Regex.Match(withoutFlag, @"^(\d{1,3})(?!\d)");
+            }
             return m.Success ? region + m.Groups[1].Value.ToUpperInvariant() : region;
         }
 
         private static string RegionCode(string n)
         {
+            if (Has(n, "🇭🇰")) return "HK"; if (Has(n, "🇨🇳")) return "CN"; if (Has(n, "🇸🇬")) return "SG";
+            if (Has(n, "🇯🇵")) return "JP"; if (Has(n, "🇺🇲", "🇺🇸")) return "US"; if (Has(n, "🇰🇷")) return "KR";
+            if (Has(n, "🇬🇧")) return "GB"; if (Has(n, "🇩🇪")) return "DE"; if (Has(n, "🇫🇷")) return "FR";
+            if (Has(n, "🇳🇱")) return "NL"; if (Has(n, "🇨🇦")) return "CA"; if (Has(n, "🇦🇺")) return "AU";
+            if (Has(n, "🇮🇳")) return "IN"; if (Has(n, "🇷🇺")) return "RU"; if (Has(n, "🇵🇭")) return "PH";
+            if (Has(n, "🇦🇪")) return "AE"; if (Has(n, "🇧🇷")) return "BR"; if (Has(n, "🇨🇱")) return "CL";
+            if (Has(n, "🇲🇽")) return "MX";
             if (Has(n, "🇭🇰", "香港", "深港", "Hong Kong")) return "HK"; if (Has(n, "台湾", "广台", "Taiwan")) return "TW";
             if (Has(n, "🇨🇳", "中国", "大陆", "China")) return "CN";
             if (Has(n, "🇸🇬", "新加坡", "新坡", "广新")) return "SG"; if (Has(n, "🇯🇵", "日本", "沪日")) return "JP";

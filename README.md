@@ -16,7 +16,7 @@ The widget does not open a network port, upload telemetry, read subscription URL
 
 ## Current behavior
 
-- Watches the `🚀 节点选择` policy group and recursively resolves nested groups to the actual outbound node.
+- Automatically discovers the active root selector across different subscriptions and recursively resolves nested groups to the actual outbound node.
 - Refreshes latency every 5 seconds.
 - Green: below 180 ms.
 - Orange: 180–349 ms.
@@ -28,7 +28,7 @@ The widget does not open a network port, upload telemetry, read subscription URL
 - Automatically hides over true full-screen video or games and reappears after leaving full-screen, while remaining visible for ordinary maximized windows.
 - Includes a spacious, DPI-aware settings window with live horizontal/vertical position preview, refresh interval, startup, reset, and Chinese/English language selection.
 - Independently adjusts the flag, compact node name, and latency text vertically with live preview.
-- Recognizes flags for more than 30 common VPN locations across Asia, Europe, the Americas, and Oceania.
+- Recognizes flags for more than 30 common VPN locations across Asia, Europe, the Americas, and Oceania, with flexible Chinese/English names and node numbers placed before or after the location.
 
 ## Download
 
@@ -56,7 +56,7 @@ The executable is written to `dist/ClashLeftWidget.exe`.
 
 Right-click the widget and select **设置… / Settings…**. Drag either position slider to preview movement immediately. Cancel restores the position from before the dialog was opened; Save keeps it. The current automatic position (to the right of LiteMonitor when detected) is offset `0` on both axes and remains the default. The interface can be switched between Chinese and English. Settings are saved per Windows user.
 
-The Mihomo pipe name (`verge-mihomo`), root policy group (`🚀 节点选择`), and latency thresholds remain source-level settings for now.
+The Mihomo pipe name (`verge-mihomo`) and latency thresholds remain source-level settings for now. The root policy group is discovered automatically, with `🚀 节点选择` retained as the preferred legacy name.
 
 ## Controls
 

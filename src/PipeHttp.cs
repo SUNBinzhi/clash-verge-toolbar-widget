@@ -1,6 +1,8 @@
 using System;
 using System.IO;
 using System.IO.Pipes;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -8,7 +10,46 @@ namespace ClashLeftWidget
 {
     internal static class PipeHttp
     {
+        private static string cachedPipeName;
+
         public static async Task<string> GetAsync(string pipeName, string path, int timeoutMs)
+        {
+            Exception lastError = null;
+            foreach (string candidate in DiscoverPipeNames(pipeName))
+            {
+                try
+                {
+                    string result = await GetFromPipeAsync(candidate, path, timeoutMs);
+                    cachedPipeName = candidate;
+                    return result;
+                }
+                catch (Exception ex)
+                {
+                    if (candidate == cachedPipeName) cachedPipeName = null;
+                    lastError = ex;
+                }
+            }
+            throw lastError ?? new IOException("Mihomo pipe was not found.");
+        }
+
+        private static IEnumerable<string> DiscoverPipeNames(string legacyName)
+        {
+            var names = new List<string>();
+            if (!string.IsNullOrEmpty(cachedPipeName)) names.Add(cachedPipeName);
+            try
+            {
+                foreach (string path in Directory.GetFiles(@"\\.\pipe\"))
+                {
+                    string name = Path.GetFileName(path);
+                    if (name.StartsWith("verge-mihomo", StringComparison.OrdinalIgnoreCase)) names.Add(name);
+                }
+            }
+            catch { }
+            names.Add(legacyName);
+            return names.Where(n => !string.IsNullOrEmpty(n)).Distinct(StringComparer.OrdinalIgnoreCase);
+        }
+
+        private static async Task<string> GetFromPipeAsync(string pipeName, string path, int timeoutMs)
         {
             using (var pipe = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous))
             {
